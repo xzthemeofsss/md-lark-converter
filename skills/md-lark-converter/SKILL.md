@@ -93,41 +93,40 @@ When a cookie is needed (missing or expired), **proactively ask the user**:
 
 > "I need a Feishu session cookie to fetch documents. Would you like me to automatically open a browser and extract it after you log in? Or would you prefer to copy it manually from DevTools?"
 
-#### Option A: Automatic extraction via MCP browser tool (if available)
+#### Option A: Automatic extraction via MCP browser tool
 
-**IMPORTANT: Do NOT write a Playwright/Puppeteer script file. Only use this option if an MCP browser tool is available in the current session.**
+**IMPORTANT: Do NOT write a Playwright/Puppeteer script file to implement this. Use an MCP browser tool.**
 
-**Prerequisite:** This option requires a Playwright MCP server. If the user wants automatic extraction but hasn't configured one, suggest adding it to `.mcp.json`:
+If the user chooses automatic extraction:
 
-```json
-{
-  "mcpServers": {
-    "playwright": {
-      "command": "npx",
-      "args": ["@anthropic/mcp-playwright"]
-    }
-  }
-}
-```
-
-After confirming an MCP browser tool is available, use it to:
-
-1. Launch a headed browser and navigate to `https://www.feishu.cn`
-2. Tell the user to log in within the browser window
-3. Poll the browser cookies every 2 seconds, checking for `session_list_v5` or `_csrf_token` cookie names — their presence indicates a successful login
-4. Once detected, collect all cookies whose domain includes `feishu.cn` or `lark`, format them as `name=value; name=value; ...`
-5. Save to `~/.md-lark-converter.json`:
+1. Check if an MCP browser tool (e.g. Playwright MCP) is available in the current session
+2. If **not available**, tell the user they need to configure one first, and suggest adding this to `.mcp.json` in the project root or `~/.claude/mcp.json` globally:
    ```json
-   { "cookie": "<collected-cookie-string>" }
+   {
+     "mcpServers": {
+       "playwright": {
+         "command": "npx",
+         "args": ["@anthropic/mcp-playwright"]
+       }
+     }
+   }
    ```
-6. Close the browser and confirm to the user that the cookie has been saved
+   Then ask the user to restart the session after adding the config.
+3. If **available**, use the MCP browser tool to:
+   1. Launch a headed browser and navigate to `https://www.feishu.cn`
+   2. Tell the user to log in within the browser window
+   3. Poll the browser cookies every 2 seconds, checking for `session_list_v5` or `_csrf_token` cookie names — their presence indicates a successful login
+   4. Once detected, collect all cookies whose domain includes `feishu.cn` or `lark`, format them as `name=value; name=value; ...`
+   5. Save to `~/.md-lark-converter.json`:
+      ```json
+      { "cookie": "<collected-cookie-string>" }
+      ```
+   6. Close the browser and confirm to the user that the cookie has been saved
 
 **Key details:**
 - Use `headless: false` — the user needs to interact with the login page
 - Set a generous timeout (5 minutes) for the polling loop — login may involve 2FA or SSO
 - Do NOT rely on URL pattern matching after login; Feishu may redirect to various paths
-
-If no MCP browser tool is available, **skip this option entirely** and go to Option B.
 
 #### Option B: Manual extraction from DevTools (default)
 
